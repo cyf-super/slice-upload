@@ -1,42 +1,24 @@
 const path = require('path')
 const fs = require('fs')
 const router = require('koa-router')()
-const uuid = require('uuid')
 const koaBody = require('koa-body')
 
 // 设置文件上传目录
 const uploadDir = path.resolve(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+	fs.mkdirSync(uploadDir);
 }
 
-// 设置分片存储目录
-// const chunkDir = path.join(uploadDir, 'chunks');
-// if (!fs.existsSync(chunkDir)) {
-//   fs.mkdirSync(chunkDir);
-// }
-
-const multer = require('multer')
-
-const upload = multer({
-	dest: './uploads'
-})
-
-
-// router.post('/upload-file', upload.array('files'), (req, res) => {
-// 	console.log('body', req.files)
-// 	res.status(200).send({ msg: '已经收到' })
-// })
 const outputPath = path.resolve(__dirname, 'uploads')
 let currChunk = {}; // 当前 chunk 信息
-// const bodyParse = 
+// const bodyParse =
 
 router.post(
-	'/upload-file',
+	'/upload-chunk',
 	koaBody({
 		multipart: true,
 		formidable: {
-      uploadDir: outputPath,
+			uploadDir: outputPath,
 			onFileBegin: (name, file) => {
 				console.log('name, file ', name, file)
 				const [filename, fileHash, index] = name.split('-')
@@ -57,11 +39,11 @@ router.post(
 				// 覆盖文件存放的完整路径
 				file.path = `${dir}/${fileHash}-${index}`
 			},
-      onError: (error) => {
-        app.status = 400
-        app.body = { code: 400, msg: '上传失败', data: currChunk }
-        return
-		  }
+			onError: (error) => {
+				app.status = 400
+				app.body = { code: 400, msg: '上传失败', data: currChunk }
+				return
+			}
 		},
 	}),
 	async (ctx) => {
@@ -92,22 +74,22 @@ router.post('/merge-chunk', async (ctx) => {
 
 // 通过管道处理流 
 const pipeStream = (path, writeStream) => {
-  return new Promise(resolve => {
-    const readStream = fs.createReadStream(path);
-    readStream.pipe(writeStream);
-    readStream.on("end", () => {
-      fs.unlinkSync(path);
-      resolve();
-    });
-  });
+	return new Promise(resolve => {
+		const readStream = fs.createReadStream(path);
+		readStream.pipe(writeStream);
+		readStream.on("end", () => {
+			fs.unlinkSync(path);
+			resolve();
+		});
+	});
 }
 
 const mergeFileChunk = async (filePath, filename, size) => {
 	const chunkDir = path.join(outputPath, filename)
-  console.log('chunkDir ', chunkDir)
+	console.log('chunkDir ', chunkDir)
 	const chunkPaths = fs.readdirSync(chunkDir)
 
-  console.log('chunkPaths ', chunkPaths)
+	console.log('chunkPaths ', chunkPaths)
 
 	if (!chunkPaths.length) return
 

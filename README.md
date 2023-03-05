@@ -1,7 +1,19 @@
-# Vue 3 + Vite
+## 文件切片上传
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+- 前端使用 vue3+vite
+- 服务端使用 koa 框架
 
-## Recommended IDE Setup
+![slice-upload](/public/slice.png '切片上传流程')
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+## 使用
+
+···
+yarn install // 安装依赖
+
+yarn dev // run
+···
+
+起一个 koa 服务：
+
+- 进入 script 目录
+- 执行 app.js：`node ./app.js`

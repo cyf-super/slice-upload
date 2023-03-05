@@ -1,125 +1,68 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import { uploadFileApi, mergeChunksApi } from './utils/request'
-import { ref } from 'vue'
-import * as SparkMD5 from "spark-md5"
-import Worker from './worker/calculateMD5'
+import { uploadFileApi, mergeChunksApi } from './utils/request';
+import Worker from './worker/calculateMD5.js?worker';
 
-console.log("SparkMD5 ", SparkMD5);
+const uploadFile = async e => {
+  const file = e.target.files[0];
+  console.time('上传结束');
+  const fileChunkList = sliceFile(file);
+  calculateHash(fileChunkList).then(hash => {
+    uploadChunks(hash, file, fileChunkList);
+  });
+};
 
-const currFile = ref()
-const fileChunkList = ref([])
-
-const uploadFile = async (e) => {
-  const files = e.target.files
-  console.log('file ', files);
-  const formData = new FormData()
-  formData.append("name", '文件名');
-  // for (let i = 0; i < files.length; i++) {
-  //   console.log(files[i]);
-  //   formData.append('files', files[i])
-  // }
-  // const data = await uploadFileApi(formData)
-  // console.log('data ', data);
-  currFile.value = files[0]
-  console.time('结束')
-  console.time('计算hash')
-  const fileChunkList = splitFile(currFile.value)
-  const fileHash = await calculateHash(fileChunkList)
-  // const { fileHash } = await getFileChunk(currFile.value)
-  // console.log('fileHash ', fileHash);
-  // console.timeEnd('计算hash')
-  // uploadChunks(fileHash)
-}
-
-const calculateHash = (chunkList) => {
+const calculateHash = chunkList => {
   return new Promise(resolve => {
-    const worker = new Worker()
-    worker.postMessage({chunkList})
-    worker.onmessage = (e) => {
-      const { md5 } = e.data
-      resolve(md5)
-    }
-  })
-}
+    const worker = new Worker();
+    worker.postMessage({ chunkList });
+    worker.onmessage = e => {
+      const { md5 } = e.data;
+      resolve(md5);
+    };
+  });
+};
 
+const defaultSize = 5 * 1024 * 1024; // 5M
 
-const defaultSize = 5 * 1024 * 1024  // 5M
-
-function splitFile(file, size = defaultSize) {
-  const fileChunkList = []
-  let curChunkIndex = 0
+function sliceFile(file, size = defaultSize) {
+  const fileChunkList = [];
+  let curChunkIndex = 0;
   while (curChunkIndex < file.size) {
     const chunk = File.prototype.slice.call(
       file,
       curChunkIndex,
-      curChunkIndex + size)
-    
-    fileChunkList.push(chunk)
-    curChunkIndex += size
+      curChunkIndex + size
+    );
+
+    fileChunkList.push(chunk);
+    curChunkIndex += size;
   }
-  return fileChunkList
+  return fileChunkList;
 }
 
-const getFileChunk = (file, chunkSize = defaultSize) => {
-  return new Promise((resolve) => {
-    const blobSlice = File.prototype.slice
-    let chunks = Math.ceil(file.size / chunkSize)
-    let currentChunk = 0
-    const sparkMd5 = new SparkMD5.ArrayBuffer()
-    const fileReader = new FileReader()
-
-    fileReader.onload = (e) => {
-      console.log('read chunk nr', currentChunk + 1, 'of')
-
-      const chunk = e.target.result
-      sparkMd5.append(chunk)
-      currentChunk++
-
-      if (currentChunk < chunks) {
-        loadNext()
-      } else {
-        const fileHash = sparkMd5.end()
-        console.info('finished computed hash', fileHash)
-        resolve({ fileHash })
-      }
-    }
-
-    fileReader.onerror = () => {
-      console.warn('oops, something went wrong.')
-    }
-    function loadNext() {
-      const start = currentChunk * chunkSize
-      const end = start + chunkSize >= file.size ? file.size : start + chunkSize
-      const chunk = blobSlice.call(file, start, end)   // 
-      fileChunkList.value.push({ chunk, size: chunk.size, name: currFile.value.name })
-      fileReader.readAsArrayBuffer(chunk);
-    }
-    loadNext()
-  })
-}
-
-const uploadChunks = (fileHash) => {
-  const requests = fileChunkList.value.map((item, index) => {
-    const formData = new FormData()
-    formData.append(`${currFile.value.name}-${fileHash}-${index}`, item.chunk)
-    formData.append("filename", currFile.value.name)
-    formData.append("hash", `${fileHash}-${index}`)
-    formData.append('fileHash', fileHash)
-    console.log('formData ', formData);
-    return uploadFileApi(formData)
-  })
+/**
+ * 上传切片并合并切片
+ * @param {*} fileHash 文件的md5
+ * @param {*} file 文件
+ * @param {*} fileChunkList 切片数组
+ */
+const uploadChunks = (fileHash, file, fileChunkList) => {
+  const requests = fileChunkList.map((item, index) => {
+    const formData = new FormData();
+    formData.append(`${file.name}-${fileHash}-${index}`, item);
+    return uploadFileApi(formData);
+  });
 
   Promise.all(requests).then(() => {
-    mergeChunksApi({ size: defaultSize, filename: currFile.value.name });
-    console.timeEnd('结束')
-  })
-}
+    mergeChunksApi({ size: defaultSize, filename: file.name });
+    console.timeEnd('上传结束');
+  });
+};
 </script>
 
 <template>
   <div>
-    <input type="file" @change="uploadFile">
+    <input type="file" @change="uploadFile" />
   </div>
 </template>
 

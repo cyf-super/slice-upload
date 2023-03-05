@@ -1,9 +1,7 @@
 const Koa = require('koa')
 const cors = require('koa2-cors')
 const { router, koaBody } = require('./router.cjs')
-const path = require('path')
 
-const fs = require('fs')
 const app = new Koa()
 
 const corsOptions = {
@@ -15,9 +13,6 @@ const corsOptions = {
 
 app.use(cors())
 app.use(koaBody({}))
-
-const outputPath = path.resolve(__dirname, 'uploads')
-let currChunk = {}; // 当前 chunk 信息
 
 app.use(router.routes(), router.allowedMethods())
 

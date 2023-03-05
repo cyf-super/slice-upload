@@ -3,7 +3,7 @@ import axios from 'axios'
 const baseUrl = 'http://localhost:3002'
 
 export const uploadFileApi = (fileData) => {
-  return axios.post(`${baseUrl}/upload-file`, fileData, {
+	return axios.post(`${baseUrl}/upload-chunk`, fileData, {
 		headers: {
 			'Content-Type': 'multipart/form-data'
 		}

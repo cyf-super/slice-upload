@@ -1,7 +1,7 @@
 import * as SparkMD5 from 'spark-md5'
 
 self.onmessage = (e) => {
-  const {chunkList} = e.data
+  const { chunkList } = e.data
 
   const spark = new SparkMD5.ArrayBuffer()
   let count = 0
@@ -14,15 +14,17 @@ self.onmessage = (e) => {
       spark.append(e.target?.result)
       // 计算完毕
       if (count >= chunkList.length) {
+        const md5 = spark.end()
+        console.log('11 ', md5)
         self.postMessage({
           percentage: 100,
-          md5: spark.end()
+          md5
         })
       } else {
         percentage += 100 / chunkList.length
-        self.postMessage({
-          percentage
-        })
+        // self.postMessage({
+        //   percentage
+        // })
         calculateMd5(count)
       }
     }
