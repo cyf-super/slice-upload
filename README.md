@@ -7,11 +7,11 @@
 
 ## 使用
 
-···
+```
 yarn install // 安装依赖
 
 yarn dev // run
-···
+```
 
 起一个 koa 服务：
 
